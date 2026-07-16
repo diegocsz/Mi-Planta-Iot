@@ -15,29 +15,25 @@ async function start() {
     const coleccion = mongoDb.collection('registros');
 
     // Endpoint API para que el frontend consulte el estado
+    // Asegúrate de que estos nombres coincidan con el fetch del HTML
     app.get('/api/estado', async (req, res) => {
         try {
-            const result = await pgPool.query('SELECT * FROM obtener_estado_plantas()');
-            // Retorna el primer registro (o ajusta según tu lógica)
+            // Asegúrate de filtrar por un ID específico si tienes varias plantas
+            const result = await pgPool.query('SELECT * FROM obtener_estado_planta_por_id(2)');
             res.json(result.rows[0] || {});
         } catch (err) {
             res.status(500).json({ error: err.message });
         }
     });
 
-    app.get('/api/registros', async (req, res) => {
+    app.get('/api/registros', async (req, res) => { // Cambiado para coincidir con el fetch del HTML
         try {
             const registros = await coleccion.aggregate([
-                { $sort: { fecha: -1 } }, // 1. Ordenar por fecha reciente
-                { $limit: 20 },           // 2. Tomar solo los últimos 20
-                { $project: {             // 3. Limpiar datos (solo temp y hum)
-                    _id: 0, 
-                    temp: 1, 
-                    hum: 1 
-                }}
+                { $sort: { fecha: -1 } },
+                { $limit: 20 },
+                { $project: { _id: 0, temp: 1, hum: 1 } }
             ]).toArray();
-            
-            res.json(registros.reverse()); // Invertir para que D3.js los pinte de izquierda a derecha
+            res.json(registros.reverse());
         } catch (err) {
             res.status(500).json({ error: err.message });
         }
@@ -58,7 +54,7 @@ async function start() {
         if (partes.length === 2) {
             const temp = parseFloat(partes[0].trim());
             const hum = parseFloat(partes[1].trim());
-            const planta_id = 1;
+            const planta_id = 2;
 
             console.log(`Guardando -> Temp: ${temp.toFixed(1)}, Hum: ${hum.toFixed(1)}`);
 
@@ -69,17 +65,21 @@ async function start() {
                 // 2. Actualizar Estado en PostgreSQL
                 await pgPool.query(
                     'UPDATE plantas SET ultima_temp = $1, ultima_hum = $2 WHERE id_planta = $3', 
-                    [temp, hum, planta_id]
+                    [temp, hum, planta_id] // planta_id es 1 o 2, etc.
                 );
 
                 // 3. Diagnóstico en consola
-                const resConsulta = await pgPool.query('SELECT * FROM obtener_estado_plantas() WHERE nombre = $1', ['Mi Planta']);
-                
+                const resConsulta = await pgPool.query(
+                    'SELECT * FROM obtener_estado_planta_por_id($1)', 
+                    [planta_id] 
+                );
+
                 if (resConsulta.rows.length > 0) {
                     const estado = resConsulta.rows[0];
-                    console.log("--- Diagnóstico de la Planta ---");
+                    console.log(`--- Diagnóstico de: ${estado.nombre} ---`);
                     console.log(`Estado: ${estado.estado_general}`);
-                    if (estado.alertas) {
+                    
+                    if (estado.alertas && estado.alertas.trim() !== '') {
                         console.log(`⚠️ Alerta: ${estado.alertas}`);
                     } else {
                         console.log("✅ Todo en orden.");

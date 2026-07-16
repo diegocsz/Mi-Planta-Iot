@@ -232,7 +232,7 @@
                             if (resEstado.ok) estadoOk = await resEstado.json();
                         } catch (e) { /* sigue con datos simulados abajo */ }
                         try {
-                            const resHistorial = await fetch('/api/historial');
+                            const resHistorial = await fetch('/api/registros');
                             if (resHistorial.ok) historialOk = await resHistorial.json();
                         } catch (e) { /* sigue con datos simulados abajo */ }
 

@@ -225,35 +225,40 @@
                 },
 
                 init() {
-                    const actualizarTodo = async () => {
-                        let estadoOk = null, historialOk = null;
-                        try {
-                            const resEstado = await fetch('/api/estado');
-                            if (resEstado.ok) estadoOk = await resEstado.json();
-                        } catch (e) { /* sigue con datos simulados abajo */ }
-                        try {
-                            const resHistorial = await fetch('/api/registros');
-                            if (resHistorial.ok) historialOk = await resHistorial.json();
-                        } catch (e) { /* sigue con datos simulados abajo */ }
+    const actualizarTodo = async () => {
+        try {
+            // Hacemos las peticiones en paralelo
+            const [resEstado, resHistorial] = await Promise.all([
+                fetch('/api/estado'),
+                fetch('/api/registros')
+            ]);
 
-                        if (estadoOk && historialOk) {
-                            this.estado = estadoOk;
-                            this.historial = historialOk;
-                            this.conectado = true;
-                        } else {
-                            // Sin backend disponible en esta vista previa: se usan datos
-                            // simulados para poder demostrar la interfaz. Con la API real
-                            // (/api/estado y /api/historial) respondiendo, esto no se ejecuta.
-                            this.conectado = false;
-                            this.simular();
-                        }
-                        this.dibujarGrafico(this.historial);
-                    };
+            if (resEstado.ok && resHistorial.ok) {
+                const estadoData = await resEstado.json();
+                const historialData = await resHistorial.json();
 
-                    actualizarTodo();
-                    setInterval(actualizarTodo, 5000);
-                },
+                // Asignamos datos reales
+                this.estado = estadoData;
+                this.historial = historialData;
+                this.conectado = true;
+                
+                // Dibujamos con datos reales
+                this.dibujarGrafico(this.historial);
+            } else {
+                // Si la respuesta no es OK, marcamos desconectado
+                this.conectado = false;
+                console.error("Error al obtener datos del servidor");
+            }
+        } catch (e) {
+            // Si el servidor está caído, NO simulamos, solo marcamos error
+            this.conectado = false;
+            console.error("Servidor no disponible", e);
+        }
+    };
 
+    actualizarTodo();
+    setInterval(actualizarTodo, 5000);
+},
                 simular() {
                     if (this.historial.length === 0) {
                         let temp = 26, hum = 55;

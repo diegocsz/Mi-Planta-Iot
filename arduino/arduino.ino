@@ -20,15 +20,12 @@ void loop() {
     return;
   }
 
-  // Buffers para almacenar el formato (3,1) -> Ej: "25.5" (4 caracteres incluyendo el punto)
   char tempBuffer[6];
   char humBuffer[6];
 
-  // Convertimos a string con formato: (valor, ancho_total, decimales, buffer)
   dtostrf(t, 4, 1, tempBuffer);
   dtostrf(h, 4, 1, humBuffer);
 
-  // Enviamos los datos limpiando espacios iniciales si es necesario
   Serial.print(tempBuffer);
   Serial.print(",");
   Serial.println(humBuffer);

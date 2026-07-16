@@ -1,5 +1,4 @@
 
--- 1. Primero, crea las tablas (puedes ejecutar esto junto)
 DROP TABLE IF EXISTS plantas;
 DROP TABLE IF EXISTS tipos_planta;
 
@@ -21,8 +20,6 @@ CREATE TABLE plantas (
     ultima_hum NUMERIC(3,1) DEFAULT 0
 );
 
-SELECT * FROM plantas;
-SELECT * FROM tipos_planta;
 
 INSERT INTO tipos_planta (nombre, temp_min, temp_max, hum_min, hum_max) 
 VALUES ('cactus', 15.0, 35.0, 10.0, 40.0);
@@ -32,7 +29,6 @@ VALUES ('pensamiento', 5.0, 20.0, 50.0, 80.0);
 
 INSERT INTO plantas (nombre, nombre_duenio, tipo_id) VALUES ('Mi Planta', 'Dueño', 1);
 INSERT INTO plantas (nombre, nombre_duenio, tipo_id) VALUES ('Plunto Plonto', 'Diego Salcedo', 2);
-
 
 SELECT nombre, duenio, tipo_planta, alertas
 FROM obtener_estado_planta_por_id(2)
@@ -46,9 +42,9 @@ WHERE p.ultima_temp BETWEEN t.temp_min AND t.temp_max
   AND p.ultima_hum BETWEEN t.hum_min AND t.hum_max
 GROUP BY t.nombre;
 
+
 DROP FUNCTION obtener_estado_plantas()
 
--- 2. Después, crea la función (esto suele requerir ir en un bloque aparte en la mayoría de gestores)
 CREATE OR REPLACE FUNCTION obtener_estado_planta_por_id(p_id_planta INT)
 RETURNS TABLE(
     nombre VARCHAR, 
@@ -87,6 +83,9 @@ BEGIN
         END
     FROM plantas p
     JOIN tipos_planta t ON p.tipo_id = t.id_tipo_planta
-    WHERE p.id_planta = p_id_planta; -- AQUÍ ESTÁ EL CAMBIO CLAVE
+    WHERE p.id_planta = p_id_planta;
 END;
 $$ LANGUAGE plpgsql;
+
+SELECT * FROM plantas;
+SELECT * FROM tipos_planta;

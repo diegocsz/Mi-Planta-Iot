@@ -7,26 +7,22 @@ const { connectDBs } = require('./db');
 const app = express();
 const PORT = 3000;
 
-// Servir archivos estáticos (tu index.html debe estar en la carpeta 'public')
 app.use(express.static('public'));
 
 async function start() {
     const { mongoDb, pgPool } = await connectDBs();
     const coleccion = mongoDb.collection('registros');
 
-    // Endpoint API para que el frontend consulte el estado
-    // Asegúrate de que estos nombres coincidan con el fetch del HTML
     app.get('/api/estado', async (req, res) => {
-        try {
-            // Asegúrate de filtrar por un ID específico si tienes varias plantas
-            const result = await pgPool.query('SELECT * FROM obtener_estado_planta_por_id(2)');
-            res.json(result.rows[0] || {});
-        } catch (err) {
-            res.status(500).json({ error: err.message });
-        }
-    });
+    try {
+        const result = await pgPool.query('SELECT * FROM obtener_estado_planta_por_id(2)');
+        res.json(result.rows[0] || {});
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 
-    app.get('/api/registros', async (req, res) => { // Cambiado para coincidir con el fetch del HTML
+    app.get('/api/registros', async (req, res) => {
         try {
             const registros = await coleccion.aggregate([
                 { $sort: { fecha: -1 } },
@@ -42,7 +38,7 @@ async function start() {
     // Iniciar servidor web
     app.listen(PORT, () => console.log(`🌐 Servidor web corriendo en http://localhost:${PORT}`));
 
-    // Configuración Serial Arduino
+    // Arduino
     const port = new SerialPort({ path: 'COM5', baudRate: 9600 });
     const parser = port.pipe(new ReadlineParser({ delimiter: '\r\n' }));
 
@@ -59,16 +55,13 @@ async function start() {
             console.log(`Guardando -> Temp: ${temp.toFixed(1)}, Hum: ${hum.toFixed(1)}`);
 
             try {
-                // 1. Guardar Historial en MongoDB
                 await coleccion.insertOne({ temp, hum, fecha: new Date() });
 
-                // 2. Actualizar Estado en PostgreSQL
                 await pgPool.query(
                     'UPDATE plantas SET ultima_temp = $1, ultima_hum = $2 WHERE id_planta = $3', 
-                    [temp, hum, planta_id] // planta_id es 1 o 2, etc.
+                    [temp, hum, planta_id]
                 );
 
-                // 3. Diagnóstico en consola
                 const resConsulta = await pgPool.query(
                     'SELECT * FROM obtener_estado_planta_por_id($1)', 
                     [planta_id] 
